@@ -6,3 +6,6 @@ __pycache__/
 # 퀴즈 진행/추가에 의해 생성되는 영속 데이터
 state.json
 
+# 로컬에서 clone/pull 검증을 위해 만든 임시 디렉터리
+clone_quiz/
+
