@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+.venv/
+.DS_Store
+
+# 퀴즈 진행/추가에 의해 생성되는 영속 데이터
+state.json
+
