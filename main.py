@@ -11,18 +11,7 @@ def main() -> None:
     try:
         while True:
             game.show_menu()
-            choice = input("선택: ").strip()
-
-            # 공통 입력 규칙: 빈 입력이면 안내 후 재입력
-            if not choice:
-                print("⚠️ 입력이 비어 있습니다. 번호를 입력해주세요.")
-                continue
-
-            try:
-                menu_choice = int(choice)
-            except ValueError:
-                print("⚠️ 숫자만 입력 가능합니다. 번호를 다시 입력해주세요.")
-                continue
+            menu_choice = game.get_int_input("선택: ", min_val=1, max_val=5)
 
             if menu_choice == 1:
                 game.play()
@@ -35,8 +24,6 @@ def main() -> None:
             elif menu_choice == 5:
                 print("프로그램을 종료합니다.")
                 break
-            else:
-                print("⚠️ 잘못된 입력입니다. 1-5 사이의 숫자를 입력하세요.")
     except (KeyboardInterrupt, EOFError):
         # "비정상 종료"하지 않고, 가능한 범위에서 저장 후 안전 종료
         print("\n\n⚠️ 입력이 중단되었습니다. 현재 상태를 저장하고 종료합니다.")
