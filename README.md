@@ -48,7 +48,7 @@ python main.py
 }
 ```
 
-## 스피드런(권장 실행 순서)
+## 권장 실행 순서
 1. `python main.py` 실행 후 메뉴 출력 확인 (`docs/screenshots/menu.png`)
 2. `2` 선택 -> 퀴즈 추가 -> 저장 메시지 확인 (`docs/screenshots/add_quiz.png`)
 3. `3` 선택 -> 추가된 퀴즈 목록 확인
