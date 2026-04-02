@@ -1,9 +1,29 @@
 {
   "quizzes": [
     {
-      "question": "예시 문제",
-      "choices": ["선택지1", "선택지2", "선택지3", "선택지4"],
-      "answer": 1
+      "question": "Linux에서 현재 디렉토리의 파일 목록을 보는 명령어는?",
+      "choices": ["cd", "ls", "pwd", "mkdir"],
+      "answer": 2
+    },
+    {
+      "question": "Python에서 리스트에 요소를 추가하는 메서드는?",
+      "choices": ["add()", "push()", "append()", "insert()"],
+      "answer": 3
+    },
+    {
+      "question": "AWS의 객체 스토리지 서비스 이름은?",
+      "choices": ["EC2", "RDS", "S3", "Lambda"],
+      "answer": 3
+    },
+    {
+      "question": "Git에서 변경 사항을 로컬 저장소에 기록하는 명령어는?",
+      "choices": ["add", "push", "commit", "fetch"],
+      "answer": 3
+    },
+    {
+      "question": "Prometheus가 주로 사용하는 데이터 저장 방식은?",
+      "choices": ["RDBMS", "NoSQL", "TSDB", "GraphDB"],
+      "answer": 3
     }
   ],
   "best_score": 0
