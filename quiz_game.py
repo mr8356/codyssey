@@ -115,9 +115,13 @@ class QuizGame:
         print(f"🏆 결과: {len(self.quizzes)}문제 중 {current_score}문제 정답! ({score_percentage}점)")
 
         if score_percentage > self.best_score:
+            previous_best = self.best_score
             self.best_score = score_percentage
             self.save()
-            print("🎉 새로운 최고 점수입니다!")
+            if previous_best <= 0:
+                print("🎉 첫 최고 점수입니다! (최고 기록 갱신)")
+            else:
+                print("🎉 새로운 최고 점수입니다!")
         else:
             print(f"현재 최고 점수: {self.best_score}점")
 
