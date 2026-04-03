@@ -9,6 +9,7 @@ class Quiz:
     question: str
     choices: list[str]  # 4개
     answer: int  # 1~4
+    hint: str = ""
 
     def display(self, index: int) -> None:
         print(f"\n[{index}] {self.question}")
@@ -23,6 +24,7 @@ class Quiz:
             "question": self.question,
             "choices": self.choices,
             "answer": self.answer,
+            "hint": self.hint,
         }
 
     @staticmethod
@@ -30,5 +32,6 @@ class Quiz:
         question = str(data.get("question", "")).strip()
         choices = data.get("choices", [])
         answer = int(data.get("answer", 0))
-        return Quiz(question=question, choices=list(choices), answer=answer)
+        hint = str(data.get("hint", "")).strip()
+        return Quiz(question=question, choices=list(choices), answer=answer, hint=hint)
 
