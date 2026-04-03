@@ -81,5 +81,5 @@ python main.py
 5. 점수 히스토리: 같은 날/다른 날 상관없이 `1`로 여러 번 플레이 후, `4. 점수 확인`에서 최근 게임 기록들이 누적되어 출력되는지 확인합니다.
 
 ## 보너스 과제 스크린샷
-![bonus1](docs/bonus1.png)
-![bonus2](docs/bonus2.png)
+![bonus1](docs/screenshots/bonus1.png)
+![bonus2](docs/screenshots/bonus2.png)
