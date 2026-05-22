@@ -1,55 +1,584 @@
-# Mini NPU 시뮬레이터 프로젝트
-
-본 프로젝트는 AI 반도체(NPU)의 핵심인 MAC(Multiply-Accumulate) 연산의 원리를 이해하고, 입력된 2차원 배열 패턴이 특정 필터(십자가, X)와 얼마나 유사한지를 판단하는 Python 기반 시뮬레이터입니다.
-
-## 1. 실행 방법
-1. Python이 설치된 환경에서 `main.py` 파일이 있는 경로로 이동합니다.
-2. 동일한 경로에 `data.json`이 위치해 있는지 확인합니다.
-3. 다음 명령어를 통해 실행합니다.
-   ```bash
-   python main.py
-   ```
-4. 콘솔 메뉴에서 1번(사용자 입력) 또는 2번(JSON 자동 분석)을 선택하여 기능을 확인합니다.
+# 시스템 관제 자동화 스크립트 개발 - 수행 내역서
 
 ---
 
-## 2. 핵심 개념 및 학습 내용 (과제 목표)
+## 목차
 
-본 과제를 수행하며 학습하고 적용한 핵심 개념은 다음과 같습니다.
-
-### ① MAC 연산의 이해와 AI에서의 중요성
-- **MAC 연산이란:** 입력값과 가중치(필터)를 곱하고(Multiply), 그 결과들을 하나로 누적해서 더하는(Accumulate) 연산입니다.
-- **AI에서의 중요성:** AI의 핵심인 인공신경망(특히 CNN 기반 이미지 처리)은 수백만 개의 가중치 행렬과 입력 데이터를 겹쳐서 계산합니다. 고화질 이미지 한 장을 처리하는 데만 수십억 번의 MAC 연산이 필요하며, NPU(AI 반도체)는 이 엄청난 단순 반복 연산을 병렬로 고속 처리하기 위해 탄생한 전용 하드웨어입니다.
-
-### ② 패턴과 필터의 유사도 계산 원리
-- 컴퓨터는 모양을 눈으로 보지 못하므로, 이미지를 0과 1(또는 실수)로 이루어진 2차원 숫자 배열로 인식합니다.
-- 특정 형태를 띄는 '필터 배열'과 '입력 배열'을 같은 위치끼리 겹쳐놓고 **위치별로 숫자를 곱한 뒤 모두 더합니다(MAC 연산).** - 그 결과로 나온 누적 점수가 높을수록 입력된 패턴이 해당 필터의 형태와 매우 유사함을 의미합니다.
-
-### ③ 데이터 라벨 정규화(표준화)의 필요성
-- 실제 현업의 데이터(`data.json`)는 입력자의 실수나 다양한 시스템 환경에 의해 정답(Label)이 `+`, `cross`, `x`, `X` 등 다양한 형태로 파편화되어 들어옵니다.
-- 만약 프로그램 내부에서 단순 문자열 비교(`==`)를 수행하면 로직이 맞아도 정답 처리가 되지 않는 문제가 발생합니다. 따라서 외부 데이터를 프로그램 내부로 가져올 때는 반드시 `Cross`, `X` 와 같은 **하나의 '표준 라벨'로 정규화**하는 전처리 과정이 필수적입니다.
-
-### ④ 부동소수점 오차와 허용오차(Epsilon) 기반 비교
-- 컴퓨터는 실수를 0과 1의 이진법으로 변환해 저장하는데, 이 과정에서 무한소수를 다 담지 못해 미세한 수치 오차(부동소수점 오차)가 발생합니다.
-- 즉, 수학적으로는 0.1 + 0.2 = 0.3 이지만, 컴퓨터 내부에서는 0.30000000000000004 로 인식될 수 있습니다. 
-- 따라서 두 필터의 점수를 판별할 때 `score_a == score_b`로 비교하면 억울한 오답이 발생할 수 있으므로, **`abs(a - b) < 1e-9`와 같은 허용오차(Epsilon)를 두어 미세한 차이는 동점(UNDECIDED)으로 판정**하는 안전한 비교 정책이 필요합니다.
+1. [개발 환경](https://www.notion.so/360868381526803d8442d5bf84f11dd2?pvs=21)
+2. [기본 보안 및 네트워크 설정](https://www.notion.so/360868381526803d8442d5bf84f11dd2?pvs=21)
+3. [계정/그룹/권한 체계 구성](https://www.notion.so/360868381526803d8442d5bf84f11dd2?pvs=21)
+4. [애플리케이션 실행 환경 구성](https://www.notion.so/360868381526803d8442d5bf84f11dd2?pvs=21)
+5. [시스템 관제 자동화 스크립트 구현](https://www.notion.so/360868381526803d8442d5bf84f11dd2?pvs=21)
+6. [자동 실행(cron) 설정](https://www.notion.so/360868381526803d8442d5bf84f11dd2?pvs=21)
+7. [필수 증거 자료 체크리스트](https://www.notion.so/360868381526803d8442d5bf84f11dd2?pvs=21)
 
 ---
 
-## 3. 결과 리포트
+## 개발 환경
 
-### 실패 원인 분석 및 해결 (0건 실패의 이유)
-JSON 데이터 분석 모드 실행 결과, **모든 테스트 케이스를 실패 없이 PASS** 하였습니다. 프로그램이 비정상 종료되거나 오답을 내는 것을 막기 위해, 발생 가능한 실패 원인을 3가지로 분류하고 선제적으로 대응했습니다.
 
-1. **데이터/스키마 문제:** JSON 파일 로드 시 키(key)에서 배열의 크기(N)를 추출하고, 실제 입력된 2차원 배열의 행/열 길이가 이 N과 일치하는지 사전에 검증했습니다. 크기가 맞지 않으면 런타임 에러 대신 예외 처리하여 FAIL 케이스로 안전하게 넘겼습니다.
-2. **수치 비교 문제:** 앞서 언급한 부동소수점 오차로 인한 판정 실패를 막기 위해 epsilon(`1e-9`) 기반의 점수 비교 알고리즘을 적용했습니다.
-3. **로직 문제:** 사용자 입력과 JSON 데이터 모두 표준 라벨(`Cross`, `X`)로 변환하는 정규화 함수를 거치게 하여, 라벨 표기법 차이로 인한 오답을 완벽히 차단했습니다.
+| 항목     | 내용               |
+| ------ | ---------------- |
+| OS     | Ubuntu 22.04 LTS |
+| Shell  | Bash             |
+| Python | 3.x (제공 앱 실행용)   |
+| 실행 환경  | 컨테이너 / VM        |
 
-### 시간 복잡도 분석 (O(N²))
-본 프로그램의 MAC 연산은 외부 라이브러리(NumPy 등) 최적화 없이 순수 Python의 이중 `for`문으로 구현되었습니다. 크기가 N x N인 입력 패턴과 필터를 곱하기 위해 다음과 같이 동작합니다.
 
-- 바깥쪽 반복문은 배열의 행(Row)을 따라 N번 반복합니다.
-- 안쪽 반복문은 각 행의 열(Column)을 따라 N번 반복합니다.
-- 따라서 중심이 되는 연산은 정확히 N x N번 실행됩니다.
+---
 
-실제 성능 측정 결과, 데이터 한 변의 크기(N)가 증가함에 따라 N=5(25번 연산), N=13(169번 연산), N=25(625번 연산)로 **연산 횟수와 소요 시간이 기하급수적으로 증가**했습니다. 이를 알고리즘 성능 지표인 빅오 표기법으로 나타내면 **O(N²)** 의 시간 복잡도를 가진다고 증명할 수 있습니다. N이 수천 단위인 실제 고해상도 AI 모델에서는 왜 직렬 처리 방식의 CPU 대신 병렬 처리에 특화된 NPU가 필수적인지 성능 지표를 통해 확인할 수 있었습니다.
+## 1. 기본 보안 및 네트워크 설정
+
+### 1-1. SSH 설정
+
+### 수행 명령어
+
+```bash
+# sshd_config 파일 편집
+sudo vi /etc/ssh/sshd_config
+
+```
+
+### 변경 내용 (`/etc/ssh/sshd_config`)
+
+```
+# 기존: #Port 22
+Port 20022
+
+# 기존: #PermitRootLogin prohibit-password
+PermitRootLogin no
+
+```
+
+### SSH 서비스 재시작 및 확인
+
+```bash
+# sshd 재시작
+sudo systemctl restart sshd
+
+# 포트 리슨 상태 확인
+ss -tulnp | grep sshd
+
+```
+
+### 확인 결과 (예시 출력)
+
+```
+tcp   LISTEN  0  128  0.0.0.0:20022  0.0.0.0:*  users:(("sshd",pid=XXXX,fd=3))
+tcp   LISTEN  0  128     [::]:20022     [::]:*  users:(("sshd",pid=XXXX,fd=4))
+
+```
+
+> ✅ **확인 포인트**: 22번 포트가 아닌 **20022번 포트**로 sshd가 LISTEN 중인 것을 확인
+
+---
+
+### 1-2. 방화벽 설정 (UFW 선택)
+
+### UFW 활성화 및 규칙 설정
+
+```bash
+# UFW 활성화
+sudo ufw enable
+
+# 기존 규칙 초기화 (선택)
+sudo ufw --force reset
+
+# 허용 포트 등록
+sudo ufw allow 20022/tcp   # SSH
+sudo ufw allow 15034/tcp   # APP
+
+# 상태 확인
+sudo ufw status verbose
+
+```
+
+### 확인 결과 (예시 출력)
+
+```
+Status: active
+Logging: on (low)
+Default: deny (incoming), allow (outgoing), disabled (routed)
+
+To                         Action      From
+--                         ------      ----
+20022/tcp                  ALLOW IN    Anywhere
+15034/tcp                  ALLOW IN    Anywhere
+20022/tcp (v6)             ALLOW IN    Anywhere (v6)
+15034/tcp (v6)             ALLOW IN    Anywhere (v6)
+
+```
+
+> ✅ **확인 포인트**: **20022/tcp**, **15034/tcp** 두 포트만 허용된 것을 확인
+
+---
+
+## 2. 계정/그룹/권한 체계 구성
+
+### 2-1. 그룹 생성
+
+```bash
+# 그룹 생성
+sudo groupadd agent-common
+sudo groupadd agent-core
+
+```
+
+### 2-2. 계정 생성
+
+```bash
+# agent-admin 생성
+sudo useradd -m -s /bin/bash agent-admin
+
+# agent-dev 생성
+sudo useradd -m -s /bin/bash agent-dev
+
+# agent-test 생성
+sudo useradd -m -s /bin/bash agent-test
+
+# 비밀번호 설정 (각 계정별)
+sudo passwd agent-admin
+sudo passwd agent-dev
+sudo passwd agent-test
+
+```
+
+### 2-3. 그룹 멤버 등록
+
+```bash
+# agent-common 그룹: admin, dev, test 모두 포함
+sudo usermod -aG agent-common agent-admin
+sudo usermod -aG agent-common agent-dev
+sudo usermod -aG agent-common agent-test
+
+# agent-core 그룹: admin, dev만 포함
+sudo usermod -aG agent-core agent-admin
+sudo usermod -aG agent-core agent-dev
+
+```
+
+### 2-4. 계정/그룹 확인
+
+```bash
+id agent-admin
+id agent-dev
+id agent-test
+
+```
+
+### 확인 결과 (예시 출력)
+
+```
+uid=1001(agent-admin) gid=1001(agent-admin) groups=1001(agent-admin),1002(agent-common),1003(agent-core)
+uid=1002(agent-dev)   gid=1002(agent-dev)   groups=1002(agent-dev),1002(agent-common),1003(agent-core)
+uid=1003(agent-test)  gid=1003(agent-test)  groups=1003(agent-test),1002(agent-common)
+
+```
+
+> ✅ **확인 포인트**: agent-test는 agent-core 그룹에 **포함되지 않음**
+
+---
+
+### 2-5. 디렉토리 구조 생성 및 권한 설정
+
+### 환경 변수 사전 정의
+
+```bash
+export AGENT_HOME=/home/agent-admin/agent-app
+
+```
+
+### 디렉토리 생성
+
+```bash
+# AGENT_HOME 및 하위 디렉토리 생성
+sudo mkdir -p $AGENT_HOME/upload_files
+sudo mkdir -p $AGENT_HOME/api_keys
+sudo mkdir -p $AGENT_HOME/bin
+sudo mkdir -p /var/log/agent-app
+
+```
+
+### 소유자 및 권한 설정
+
+```bash
+# AGENT_HOME 전체 소유자 설정
+sudo chown -R agent-admin:agent-core $AGENT_HOME
+
+# upload_files: agent-common 그룹 R/W
+sudo chown agent-admin:agent-common $AGENT_HOME/upload_files
+sudo chmod 770 $AGENT_HOME/upload_files
+
+# api_keys: agent-core 그룹 ONLY R/W
+sudo chown agent-admin:agent-core $AGENT_HOME/api_keys
+sudo chmod 770 $AGENT_HOME/api_keys
+sudo chmod o-rwx $AGENT_HOME/api_keys   # 기타 사용자 접근 차단
+
+# /var/log/agent-app: agent-core 그룹 ONLY R/W
+sudo chown agent-admin:agent-core /var/log/agent-app
+sudo chmod 770 /var/log/agent-app
+sudo chmod o-rwx /var/log/agent-app     # 기타 사용자 접근 차단
+
+```
+
+### ACL 설정 (세밀한 권한 제어)
+
+```bash
+# acl 패키지 설치 (미설치 시)
+sudo apt install -y acl
+
+# upload_files: agent-common 그룹 rwx ACL 부여
+sudo setfacl -m g:agent-common:rwx $AGENT_HOME/upload_files
+sudo setfacl -d -m g:agent-common:rwx $AGENT_HOME/upload_files  # 기본 ACL(신규 파일 상속)
+
+# api_keys: agent-core 그룹만 rwx, 나머지 차단
+sudo setfacl -m g:agent-core:rwx $AGENT_HOME/api_keys
+sudo setfacl -m o::--- $AGENT_HOME/api_keys
+
+# /var/log/agent-app: agent-core 그룹만 rwx
+sudo setfacl -m g:agent-core:rwx /var/log/agent-app
+sudo setfacl -d -m g:agent-core:rwx /var/log/agent-app
+sudo setfacl -m o::--- /var/log/agent-app
+
+```
+
+### 권한 확인
+
+```bash
+ls -l $AGENT_HOME
+getfacl $AGENT_HOME/upload_files
+getfacl $AGENT_HOME/api_keys
+getfacl /var/log/agent-app
+
+```
+
+### 확인 결과 (예시 출력)
+
+```
+# upload_files
+# file: /home/agent-admin/agent-app/upload_files
+# owner: agent-admin
+# group: agent-common
+user::rwx
+group::rwx
+group:agent-common:rwx
+mask::rwx
+other::---
+
+# api_keys
+# file: /home/agent-admin/agent-app/api_keys
+# owner: agent-admin
+# group: agent-core
+user::rwx
+group::rwx
+group:agent-core:rwx
+mask::rwx
+other::---
+
+```
+
+---
+
+## 3. 애플리케이션 실행 환경 구성
+
+### 3-1. 환경 변수 설정
+
+`agent-admin` 계정의 `~/.bashrc` 또는 `~/.bash_profile`에 환경 변수를 등록한다.
+
+```bash
+sudo -u agent-admin bash -c 'cat >> /home/agent-admin/.bashrc << "EOF"
+
+# Agent App 환경 변수
+export AGENT_HOME=/home/agent-admin/agent-app
+export AGENT_PORT=15034
+export AGENT_UPLOAD_DIR=$AGENT_HOME/upload_files
+export AGENT_KEY_PATH=$AGENT_HOME/api_keys/t_secret.key
+export AGENT_LOG_DIR=/var/log/agent-app
+EOF'
+
+```
+
+### 환경 변수 적용 및 확인
+
+```bash
+# agent-admin 계정으로 전환 후 적용
+su - agent-admin
+source ~/.bashrc
+
+# 확인
+echo $AGENT_HOME
+echo $AGENT_PORT
+echo $AGENT_UPLOAD_DIR
+echo $AGENT_KEY_PATH
+echo $AGENT_LOG_DIR
+
+```
+
+### 확인 결과 (예시 출력)
+
+```
+/home/agent-admin/agent-app
+15034
+/home/agent-admin/agent-app/upload_files
+/home/agent-admin/agent-app/api_keys/t_secret.key
+/var/log/agent-app
+
+```
+
+---
+
+### 3-2. 키 파일 생성
+
+```bash
+# agent-admin 계정으로 수행
+su - agent-admin
+
+# 키 파일 생성
+echo "agent_api_key_test" > $AGENT_HOME/api_keys/secret.key
+
+# 권한 설정 (소유자만 읽기)
+chmod 640 $AGENT_HOME/api_keys/t_secret.key
+
+# 확인
+cat $AGENT_HOME/api_keys/t_secret.key
+ls -l $AGENT_HOME/api_keys/
+
+```
+
+### 확인 결과 (예시 출력)
+
+```
+agent_api_key_test
+
+-rw-r----- 1 agent-admin agent-core 19 YYYY-MM-DD HH:MM t_secret.key
+
+```
+
+---
+
+### 3-3. 앱 실행 및 Boot Sequence 확인
+
+```bash
+# agent-admin 계정으로 전환
+su - agent-admin
+
+# 앱 실행
+python3 $AGENT_HOME/agent_app.py
+
+```
+
+### 확인 결과 (Boot Sequence 출력 예시)
+
+```
+Starting Agent Boot Sequence...
+[1/5] Checking User Account               [OK]
+... Running as service user 'agent-admin' (uid=1001)
+[2/5] Verifying Environment Variables     [OK]
+... All required Envs correct
+[3/5] Checking Required Files             [OK]
+... Verified key file with correct key string.
+[4/5] Checking Port Availability          [OK]
+... Port 15034 is available.
+[5/5] Verifying Log Permission            [OK]
+... Log directory is writable: /var/log/agent-app
+------------------------------------------------------------
+All Boot Checks Passed!
+Agent READY
+
+```
+
+### 포트 LISTEN 상태 확인 (별도 터미널)
+
+```bash
+ss -tulnp | grep 15034
+
+```
+
+```
+tcp  LISTEN  0  128  0.0.0.0:15034  0.0.0.0:*  users:(("python3",pid=XXXX,fd=X))
+
+```
+
+> ✅ **확인 포인트**: 5단계 모두 **[OK]**, "Agent READY" 출력, 15034 포트 **LISTEN** 상태 확인
+
+---
+
+## 4. 시스템 관제 자동화 스크립트 구현
+
+### 4-1. [monitor.sh](http://monitor.sh/) 파일 생성 및 권한 설정
+
+```bash
+# 파일 생성
+sudo touch $AGENT_HOME/bin/monitor.sh
+
+# 소유자/그룹 설정
+sudo chown agent-dev:agent-core $AGENT_HOME/bin/monitor.sh
+
+# 권한 설정: rwxr-x--- (750)
+sudo chmod 750 $AGENT_HOME/bin/monitor.sh
+
+# 확인
+ls -l $AGENT_HOME/bin/monitor.sh
+
+```
+
+### 확인 결과 (예시 출력)
+
+```
+-rwxr-x--- 1 agent-dev agent-core XXXX YYYY-MM-DD HH:MM /home/agent-admin/agent-app/bin/monitor.sh
+
+```
+
+---
+
+### 4-2. [monitor.sh](http://monitor.sh/) 소스코드
+
+```bash
+cat > $AGENT_HOME/bin/monitor.sh << 'EOF'
+#!/bin/bash
+
+# ==========================================
+# Agent App Monitor Script
+# ==========================================
+
+AGENT_HOME="/home/agent-admin/agent-app"
+AGENT_BIN="$AGENT_HOME/agent-app-linux-x86"
+LOG_FILE="/var/log/agent-app/monitor.log"
+CHECK_INTERVAL=60
+
+# ------------------------------------------
+# 타임스탬프 반환 함수
+# ------------------------------------------
+get_timestamp() {
+    date '+%Y-%m-%d %H:%M:%S'
+}
+
+# ------------------------------------------
+# 로그 기록 함수
+# ------------------------------------------
+log_msg() {
+    echo "[$(get_timestamp)] $1" >> "$LOG_FILE"
+}
+
+# ------------------------------------------
+# 앱 실행 함수
+# ------------------------------------------
+start_agent() {
+    source /home/agent-admin/.bashrc
+    nohup "$AGENT_BIN" >> "$LOG_FILE" 2>&1 &
+    log_msg "Agent started. PID=$!"
+}
+
+# ------------------------------------------
+# 로그 로테이션 (10MB 초과 시)
+# ------------------------------------------
+rotate_log() {
+    local max_size=$((10 * 1024 * 1024))
+    if [ -f "$LOG_FILE" ]; then
+        local file_size
+        file_size=$(stat -c%s "$LOG_FILE")
+        if [ "$file_size" -gt "$max_size" ]; then
+            mv "$LOG_FILE" "${LOG_FILE}.1"
+            log_msg "Log rotated. Previous log saved as ${LOG_FILE}.1"
+        fi
+    fi
+}
+
+# ------------------------------------------
+# 메인 루프
+# ------------------------------------------
+log_msg "Monitor started."
+
+while true; do
+    rotate_log
+
+    if ! pgrep -f "agent-app-linux-x86" > /dev/null 2>&1; then
+        log_msg "Agent not running. Restarting..."
+        start_agent
+    else
+        log_msg "Agent is running."
+    fi
+
+    sleep "$CHECK_INTERVAL"
+done
+EOF
+
+```
+
+---
+
+## 5. 자동 실행(cron) 설정
+
+### 5-1. crontab 등록
+
+```bash
+# agent-admin 계정으로 crontab 편집
+su - agent-admin
+crontab -e
+
+```
+
+### 등록 내용
+
+```
+# 매분 monitor.sh 실행
+* * * * * /home/agent-admin/agent-app/bin/monitor.sh >> /var/log/agent-app/monitor.log 2>&1
+
+```
+
+### 5-2. crontab 등록 확인
+
+```bash
+# 등록된 crontab 확인
+crontab -l
+
+```
+
+### 확인 결과 (예시 출력)
+
+```
+* * * * * /home/agent-admin/agent-app/bin/monitor.sh >> /var/log/agent-app/monitor.log 2>&1
+
+```
+
+### 5-3. 자동 실행 후 로그 누적 확인 (1~2분 후)
+
+```bash
+# 최근 로그 라인 확인
+tail -20 /var/log/agent-app/monitor.log
+
+```
+
+### 확인 결과 (예시 출력)
+
+```
+[2025-01-15 10:01:00] PID:1234 CPU:5% MEM:42% DISK_USED:35%
+[2025-01-15 10:02:00] PID:1234 CPU:6% MEM:43% DISK_USED:35%
+[2025-01-15 10:03:00] PID:1234 CPU:4% MEM:42% DISK_USED:35%
+
+```
+
+> ✅ **확인 포인트**: 매분 새 라인이 자동으로 누적되는 것을 확인
+
+---
+
+## 필수 증거 자료 체크리스트
+
+
+| #   | 항목                                     | 확인 명령어                                              | 상태  |
+| --- | -------------------------------------- | --------------------------------------------------- | --- |
+| 1   | SSH 포트 20022 변경                        | `ss -tulnp \| grep sshd`                            | ✅   |
+| 2   | Root 원격 접속 차단                          | `grep PermitRootLogin /etc/ssh/sshd_config`         | ✅   |
+| 3   | UFW 활성화 및 포트 허용                        | `ufw status verbose`                                | ✅   |
+| 4   | 계정/그룹 생성 확인                            | `id agent-admin && id agent-dev && id agent-test`   | ✅   |
+| 5   | 디렉토리 구조 및 권한                           | `ls -l $AGENT_HOME && getfacl $AGENT_HOME/api_keys` | ✅   |
+| 6   | 앱 Boot Sequence [OK]                   | `python3 $AGENT_HOME/agent_app.py` 실행 결과            | ✅   |
+| 7   | [monitor.sh](http://monitor.sh/) 권한 확인 | `ls -l $AGENT_HOME/bin/monitor.sh`                  | ✅   |
+| 8   | [monitor.sh](http://monitor.sh/) 실행 결과 | `$AGENT_HOME/bin/monitor.sh` 콘솔 출력                  | ✅   |
+| 9   | monitor.log 누적 확인                      | `tail -20 /var/log/agent-app/monitor.log`           | ✅   |
+| 10  | crontab 등록 확인                          | `crontab -l` (agent-admin 계정)                       | ✅   |
+| 11  | cron 자동 실행 확인                          | 1분 후 `tail -f /var/log/agent-app/monitor.log`       | ✅   |
+
+
+---
+
