@@ -435,6 +435,7 @@ ls -l $AGENT_HOME/bin/monitor.sh
 
 ```bash
 cat > $AGENT_HOME/bin/monitor.sh << 'EOF'
+cat > $AGENT_HOME/bin/monitor.sh << 'EOF'
 #!/bin/bash
 
 # ==========================================
@@ -464,9 +465,12 @@ log_msg() {
 # 앱 실행 함수
 # ------------------------------------------
 start_agent() {
-    source /home/agent-admin/.bashrc
+    # .bashrc가 존재할 경우에만 source 실행 (오류 방지)
+    if [ -f /home/agent-admin/.bashrc ]; then
+        source /home/agent-admin/.bashrc
+    fi
     nohup "$AGENT_BIN" >> "$LOG_FILE" 2>&1 &
-    log_msg "Agent started. PID=$!"
+    log_msg "Agent start command executed. PID=$!"
 }
 
 # ------------------------------------------
@@ -485,6 +489,15 @@ rotate_log() {
 }
 
 # ------------------------------------------
+# [추가] 사전 검사: 실행 파일 확인
+# ------------------------------------------
+if [ ! -x "$AGENT_BIN" ]; then
+    log_msg "CRITICAL: Agent binary not found or not executable ($AGENT_BIN)."
+    log_msg "Exiting monitor script with status 1."
+    exit 1
+fi
+
+# ------------------------------------------
 # 메인 루프
 # ------------------------------------------
 log_msg "Monitor started."
@@ -495,6 +508,14 @@ while true; do
     if ! pgrep -f "agent-app-linux-x86" > /dev/null 2>&1; then
         log_msg "Agent not running. Restarting..."
         start_agent
+        
+        # [추가] 재시작 후 프로세스가 정상적으로 실행되었는지 확인 대기
+        sleep 3 
+        
+        if ! pgrep -f "agent-app-linux-x86" > /dev/null 2>&1; then
+            log_msg "CRITICAL: Agent failed to start. Exiting monitor script with status 1."
+            exit 1
+        fi
     else
         log_msg "Agent is running."
     fi
